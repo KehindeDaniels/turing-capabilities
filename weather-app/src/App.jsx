@@ -1,9 +1,10 @@
 import "./App.css";
+import WeatherPage from "./components/WeatherPage";
 
 function App() {
   return (
     <>
-      <h1 className="text-red-500 text-3xl">Hell world</h1>
+      <WeatherPage />
     </>
   );
 }
