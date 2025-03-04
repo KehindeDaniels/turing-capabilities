@@ -1,17 +1,15 @@
 // components/WeatherFallback.jsx
-const WeatherFallback = ({ error, onRetry }) => (
-  <div className="text-center p-4 bg-red-50 rounded-lg">
-    <h3 className="text-xl font-semibold text-red-700 mb-2">
-      Oops! Something went wrong
-    </h3>
-    <p className="text-red-600 mb-4">{error}</p>
+export const WeatherFallback = ({ onRetry }) => (
+  <div className="text-center p-4 bg-gray-100 rounded-lg">
+    <h3 className="text-xl font-semibold mb-2">Unable to Load Weather Data</h3>
+    <p className="mb-4">
+      We're having trouble connecting to our weather service.
+    </p>
     <button
       onClick={onRetry}
-      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
     >
       Try Again
     </button>
   </div>
 );
-
-export default WeatherFallback;

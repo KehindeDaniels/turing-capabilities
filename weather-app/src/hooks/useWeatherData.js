@@ -1,7 +1,7 @@
 // hooks/useWeatherData.js
 import { useReducer, useCallback, useRef, useEffect } from "react";
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
 const initialState = {
   weatherData: null,
@@ -33,26 +33,22 @@ export const useWeatherData = (apiKey) => {
   const [state, dispatch] = useReducer(weatherReducer, initialState);
   const abortControllerRef = useRef(null);
 
-  const getCachedData = (location) => {
-    const cachedResult = cache.get(location);
-    if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_DURATION) {
-      return cachedResult.data;
-    }
-    return null;
-  };
+  const clearCache = useCallback(() => {
+    cache.clear();
+  }, []);
 
   const fetchWeatherData = useCallback(
     async (location) => {
-      if (!location.trim()) return;
+      if (!location) return;
 
       // Check cache first
-      const cachedData = getCachedData(location);
-      if (cachedData) {
-        dispatch({ type: "FETCH_SUCCESS", payload: cachedData });
+      const cachedData = cache.get(location);
+      if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
+        dispatch({ type: "FETCH_SUCCESS", payload: cachedData.data });
         return;
       }
 
-      // Cancel previous request
+      // Cancel previous request if exists
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -69,17 +65,7 @@ export const useWeatherData = (apiKey) => {
         );
 
         if (!response.ok) {
-          throw new Error(
-            response.status === 404
-              ? "Location not found"
-              : response.status === 401
-              ? "Invalid API key"
-              : response.status === 429
-              ? "Too many requests"
-              : response.status === 500
-              ? "Server error"
-              : "Failed to fetch weather data"
-          );
+          throw new Error(getErrorMessage(response.status));
         }
 
         const data = await response.json();
@@ -96,7 +82,7 @@ export const useWeatherData = (apiKey) => {
 
         dispatch({
           type: "FETCH_ERROR",
-          payload: error.message || "Failed to fetch weather data",
+          payload: error.message || "An unexpected error occurred",
         });
       }
     },
@@ -111,5 +97,24 @@ export const useWeatherData = (apiKey) => {
     };
   }, []);
 
-  return { ...state, fetchWeatherData };
+  return {
+    ...state,
+    fetchWeatherData,
+    clearCache,
+  };
+};
+
+const getErrorMessage = (status) => {
+  switch (status) {
+    case 401:
+      return "Invalid API key. Please check your API configuration.";
+    case 404:
+      return "Location not found. Please check the city name.";
+    case 429:
+      return "Too many requests. Please try again later.";
+    case 500:
+      return "Server error. Please try again later.";
+    default:
+      return "An unexpected error occurred.";
+  }
 };

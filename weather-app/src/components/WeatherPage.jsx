@@ -1,73 +1,68 @@
-// components/WeatherPage.jsx
-import React, { useState, useCallback, lazy, Suspense } from "react";
-import { debounce } from "lodash";
-import { useWeather } from "../hooks/useWeather";
-import WeatherFallback from "./WeatherFallback";
+/* src/pages/WeatherPage.jsx */
+import  { lazy, Suspense } from "react";
+// Lazy-load the WeatherDetails component
+const WeatherDetails = lazy(() => import("../components/WeatherDetails"));
 
-// Lazy load the weather details component
-const WeatherDetails = lazy(() => import("./WeatherDetails"));
+import useWeather from "../hooks/useWeather";
+
+// Replace this with your real API key
+const API_KEY = "ac87ffc7968820e84cd66dd4f1cfa912";
 
 function WeatherPage() {
-  const [location, setLocation] = useState("");
-  const { weatherData, loading, error, fetchWeather } = useWeather();
+  // Use our custom hook
+  const {
+    data: weather,
+    loading,
+    error,
+    fallback,
+    setLocation,
+    refresh,
+  } = useWeather("", API_KEY);
 
-  // Debounce the fetch weather function
-  const debouncedFetchWeather = useCallback(
-    debounce((loc) => fetchWeather(loc), 500),
-    [fetchWeather]
-  );
+  const handleInputChange = (e) => {
+    setLocation(e.target.value);
+  };
 
-  const handleLocationChange = useCallback(
-    (e) => {
-      const newLocation = e.target.value;
-      setLocation(newLocation);
-      if (newLocation.trim()) {
-        debouncedFetchWeather(newLocation);
-      }
-    },
-    [debouncedFetchWeather]
-  );
-
-  const handleRefresh = useCallback(() => {
-    if (location.trim()) {
-      fetchWeather(location);
-    }
-  }, [location, fetchWeather]);
+  // If multiple errors have occurred or the API is unreachable,
+  // show a more user-friendly fallback UI:
+  if (fallback) {
+    return (
+      <div className="p-4">
+        <h1 className="text-2xl font-bold mb-4">CNForcast News @10</h1>
+        <p className="text-red-500">
+          We are having trouble reaching the weather service. Please try again
+          later.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">
-        CN'Forcast Weather
-      </h1>
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">CNForcast News @10</h1>
+      <input
+        className="border p-2 mb-4"
+        type="text"
+        placeholder="Enter location"
+        onChange={handleInputChange}
+      />
+      <button
+        onClick={refresh}
+        className="bg-blue-500 text-white p-2 mb-4 ml-2"
+      >
+        Refresh
+      </button>
 
-      <div className="flex gap-2 mb-6">
-        <input
-          className="flex-1 border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          type="text"
-          placeholder="Enter location"
-          value={location}
-          onChange={handleLocationChange}
-        />
-        <button
-          onClick={handleRefresh}
-          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-          disabled={loading}
-        >
-          {loading ? "Loading..." : "Refresh"}
-        </button>
-      </div>
+      {/* Loading Indicator */}
+      {loading && <p>Loading...</p>}
 
-      {loading && (
-        <div className="text-center p-4">
-          <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
-        </div>
-      )}
+      {/* Single error message */}
+      {error && !loading && <p className="text-red-500">Error: {error}</p>}
 
-      {error && <WeatherFallback error={error} onRetry={handleRefresh} />}
-
-      {weatherData && !loading && !error && (
-        <Suspense fallback={<div>Loading weather details...</div>}>
-          <WeatherDetails data={weatherData} />
+      {/* Weather Information (Lazy Loaded Component) */}
+      {!loading && !error && weather && (
+        <Suspense fallback={<p>Loading weather details...</p>}>
+          <WeatherDetails weather={weather} />
         </Suspense>
       )}
     </div>
